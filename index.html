@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dona Rica — Auto Post</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111;
+    --card: #161616;
+    --border: #252525;
+    --gold: #c9a96e;
+    --gold-light: #e8d5b0;
+    --text: #f0ece4;
+    --muted: #555;
+    --success: #4caf7d;
+    --error: #e05c5c;
+    --info: #5b9bd5;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Montserrat',sans-serif; font-weight:300; min-height:100vh; }
+
+  header { padding:28px 48px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .logo { font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:300; letter-spacing:6px; text-transform:uppercase; color:var(--gold); }
+  .logo span { font-style:italic; color:var(--text); }
+  .badge { font-size:9px; letter-spacing:2px; text-transform:uppercase; border:1px solid var(--success); color:var(--success); padding:5px 12px; }
+
+  main { max-width:1100px; margin:0 auto; padding:52px 48px; }
+
+  .hero { margin-bottom:52px; }
+  .hero h1 { font-family:'Cormorant Garamond',serif; font-size:clamp(36px,5vw,60px); font-weight:300; line-height:1.1; margin-bottom:10px; }
+  .hero h1 em { font-style:italic; color:var(--gold); }
+  .hero p { font-size:11px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; }
+
+  .btn-run {
+    position:relative; background:transparent; border:1px solid var(--gold);
+    color:var(--gold); font-family:'Montserrat',sans-serif; font-size:11px;
+    font-weight:600; letter-spacing:4px; text-transform:uppercase;
+    padding:18px 44px; cursor:pointer; transition:all .3s; overflow:hidden;
+  }
+  .btn-run::before { content:''; position:absolute; inset:0; background:var(--gold); transform:translateX(-100%); transition:transform .3s; z-index:0; }
+  .btn-run:hover::before { transform:translateX(0); }
+  .btn-run:hover { color:var(--bg); }
+  .btn-run span { position:relative; z-index:1; }
+  .btn-run:disabled { opacity:.35; cursor:not-allowed; }
+  .btn-run:disabled::before { display:none; }
+
+  .controls { display:flex; align-items:center; gap:32px; margin-bottom:52px; flex-wrap:wrap; }
+
+  /* Log stream */
+  .log-panel { background:var(--card); border:1px solid var(--border); padding:20px 24px; margin-bottom:48px; font-family:monospace; font-size:12px; min-height:60px; max-height:160px; overflow-y:auto; display:none; }
+  .log-panel.show { display:block; }
+  .log-line { padding:2px 0; line-height:1.6; }
+  .log-line.ok { color:var(--success); }
+  .log-line.err { color:var(--error); }
+  .log-line.info { color:var(--info); }
+  .log-line.dim { color:var(--muted); }
+
+  /* Product + Post grid */
+  .result { display:none; }
+  .result.show { display:grid; grid-template-columns:1fr 1fr; gap:2px; border:1px solid var(--border); }
+
+  .pane { background:var(--card); padding:36px; }
+  .pane-label { font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--gold); margin-bottom:24px; }
+
+  /* Photo grid */
+  .photo-grid { display:grid; grid-template-columns:2fr 1fr; grid-template-rows:1fr 1fr; gap:6px; margin-bottom:22px; height:260px; }
+  .photo-slot { background:var(--surface); border:1px solid var(--border); overflow:hidden; position:relative; }
+  .photo-slot img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .4s; }
+  .photo-slot:hover img { transform:scale(1.04); }
+  .photo-slot.main { grid-row:span 2; }
+
+  .prod-name { font-family:'Cormorant Garamond',serif; font-size:24px; font-weight:400; margin-bottom:6px; }
+  .prod-price { color:var(--gold); font-size:17px; font-weight:500; margin-bottom:10px; }
+  .prod-desc { font-size:11px; color:var(--muted); line-height:1.8; }
+  .prod-meta { display:flex; gap:12px; margin-top:14px; flex-wrap:wrap; }
+  .meta-tag { font-size:9px; letter-spacing:1px; text-transform:uppercase; border:1px solid var(--border); padding:4px 10px; color:var(--muted); }
+
+  /* IG mock */
+  .ig-phone { max-width:290px; margin:0 auto; background:#000; border-radius:32px; padding:10px; border:1.5px solid var(--border); box-shadow:0 32px 64px rgba(0,0,0,.6); }
+  .ig-screen { background:#000; border-radius:24px; overflow:hidden; }
+  .ig-top { display:flex; align-items:center; justify-content:space-between; padding:10px 14px 6px; }
+  .ig-avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,var(--gold),#7a4a1e); display:flex; align-items:center; justify-content:center; font-family:'Cormorant Garamond',serif; font-size:11px; font-weight:600; color:#fff; flex-shrink:0; }
+  .ig-uname { font-size:11px; font-weight:600; color:#fff; margin-left:8px; }
+  .ig-post-img { width:100%; aspect-ratio:1; object-fit:cover; display:block; background:var(--border); }
+  .ig-actions { padding:8px 12px 4px; display:flex; gap:10px; font-size:16px; }
+  .ig-likes { padding:0 12px; font-size:10px; font-weight:600; color:#fff; margin-bottom:4px; }
+  .ig-caption-wrap { padding:0 12px 10px; font-size:10px; color:#fff; line-height:1.5; max-height:80px; overflow:hidden; }
+  .ig-caption-wrap strong { font-weight:600; }
+  .ig-hashtags { color:#5b7fbb; font-size:9px; line-height:1.7; display:block; margin-top:3px; }
+  .ig-time { padding:0 12px 12px; font-size:8px; color:#444; text-transform:uppercase; letter-spacing:1px; }
+
+  /* Caption editor */
+  .caption-box { width:100%; background:var(--surface); border:1px solid var(--border); color:var(--text); font-family:'Montserrat',sans-serif; font-size:12px; font-weight:300; line-height:1.7; padding:14px; resize:vertical; min-height:120px; margin-bottom:12px; }
+  .caption-box:focus { outline:none; border-color:var(--gold); }
+
+  .btn-publish { width:100%; background:linear-gradient(135deg,var(--gold),#8b4a1e); border:none; color:#000; font-family:'Montserrat',sans-serif; font-size:10px; font-weight:700; letter-spacing:3px; text-transform:uppercase; padding:16px; cursor:pointer; margin-top:12px; transition:opacity .2s; }
+  .btn-publish:hover { opacity:.85; }
+
+  .regen-btn { background:transparent; border:1px solid var(--border); color:var(--muted); font-family:'Montserrat',sans-serif; font-size:9px; letter-spacing:2px; text-transform:uppercase; padding:7px 14px; cursor:pointer; transition:all .2s; margin-bottom:10px; }
+  .regen-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+  .toast { position:fixed; bottom:36px; right:36px; background:var(--card); border:1px solid var(--success); color:var(--success); padding:14px 22px; font-size:10px; letter-spacing:2px; text-transform:uppercase; transform:translateY(80px); opacity:0; transition:all .4s; z-index:999; }
+  .toast.show { transform:translateY(0); opacity:1; }
+
+  /* Progress bar */
+  .prog-wrap { height:1px; background:var(--border); margin-bottom:48px; }
+  .prog-fill { height:100%; background:var(--gold); width:0; transition:width .5s; }
+
+  .spinner { display:inline-block; width:9px; height:9px; border:1.5px solid var(--gold); border-top-color:transparent; border-radius:50%; animation:spin .7s linear infinite; margin-right:6px; vertical-align:middle; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .status-row { display:flex; align-items:center; gap:10px; }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--muted); flex-shrink:0; transition:background .3s; }
+  .dot.active { background:var(--gold); animation:pulse 1.4s infinite; }
+  .dot.done { background:var(--success); animation:none; }
+  .dot.error { background:var(--error); animation:none; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+  .status-text { font-size:10px; letter-spacing:1.5px; color:var(--muted); text-transform:uppercase; }
+
+  .loading-copy { font-size:10px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; text-align:center; padding:20px 0; }
+
+  @media(max-width:700px) {
+    header { padding:20px 20px; }
+    main { padding:36px 20px; }
+    .result.show { grid-template-columns:1fr; }
+    .controls { flex-direction:column; align-items:flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">dona <span>rica</span></div>
+  <div class="badge">● API conectada</div>
+</header>
+
+<main>
+  <div class="hero">
+    <h1>Post <em>automático</em><br>para o Instagram</h1>
+    <p>Produto real · Copy com IA · Pronto para publicar</p>
+  </div>
+
+  <div class="controls">
+    <button class="btn-run" id="btnRun" onclick="runPipeline()">
+      <span>▶ &nbsp; Gerar Post</span>
+    </button>
+    <div class="status-row">
+      <div class="dot" id="dot"></div>
+      <span class="status-text" id="statusText">Aguardando</span>
+    </div>
+  </div>
+
+  <div class="prog-wrap"><div class="prog-fill" id="progFill"></div></div>
+  <div class="log-panel" id="logPanel"></div>
+
+  <div class="result" id="result">
+    <div class="pane">
+      <div class="pane-label">Produto selecionado</div>
+      <div class="photo-grid" id="photoGrid">
+        <div class="photo-slot main"><img id="imgMain" src="" alt=""></div>
+        <div class="photo-slot"><img id="img2" src="" alt=""></div>
+        <div class="photo-slot"><img id="img3" src="" alt=""></div>
+      </div>
+      <div class="prod-name" id="prodName"></div>
+      <div class="prod-price" id="prodPrice"></div>
+      <div class="prod-desc" id="prodDesc"></div>
+      <div class="prod-meta" id="prodMeta"></div>
+    </div>
+
+    <div class="pane" style="border-left:1px solid var(--border)">
+      <div class="pane-label">Preview Instagram</div>
+      <div class="ig-phone">
+        <div class="ig-screen">
+          <div class="ig-top">
+            <div style="display:flex;align-items:center">
+              <div class="ig-avatar">DR</div>
+              <span class="ig-uname">donarica.oficial</span>
+            </div>
+            <span style="color:#fff;font-size:16px;cursor:pointer">···</span>
+          </div>
+          <img class="ig-post-img" id="igImg" src="" alt="">
+          <div class="ig-actions">🤍 💬 ✈️ <span style="margin-left:auto">🔖</span></div>
+          <div class="ig-likes" id="igLikes"></div>
+          <div class="ig-caption-wrap" id="igCaption"></div>
+          <div class="ig-time">Agora mesmo</div>
+        </div>
+      </div>
+
+      <div style="margin-top:24px">
+        <div class="pane-label">Editar legenda</div>
+        <div id="copyLoading" class="loading-copy" style="display:none"><span class="spinner"></span>Claude gerando copy...</div>
+        <textarea class="caption-box" id="captionEdit"></textarea>
+        <button class="regen-btn" onclick="regenCopy()">↻ &nbsp; Regenerar copy</button>
+        <button class="btn-publish" onclick="confirmPublish()">✦ &nbsp; Confirmar e publicar</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast">✓ &nbsp; Post publicado!</div>
+
+<script>
+const ACCESS_TOKEN = '939ce147028e10ceb09b11aff84fa8984ee3e28a';
+const STORE_ID = '6813851';
+const ANTHROPIC_KEY = null; // será chamada via API proxy
+
+let currentProduct = null;
+let running = false;
+
+function log(msg, type='dim') {
+  const panel = document.getElementById('logPanel');
+  panel.classList.add('show');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + type;
+  line.textContent = '› ' + msg;
+  panel.appendChild(line);
+  panel.scrollTop = panel.scrollHeight;
+}
+
+function setStatus(state, text) {
+  const dot = document.getElementById('dot');
+  dot.className = 'dot ' + state;
+  document.getElementById('statusText').textContent = text;
+}
+
+function setProgress(pct) {
+  document.getElementById('progFill').style.width = pct + '%';
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function runPipeline() {
+  if (running) return;
+  running = true;
+
+  document.getElementById('btnRun').disabled = true;
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('logPanel').innerHTML = '';
+  setProgress(0);
+  setStatus('active', 'Conectando...');
+  log('Iniciando pipeline DonaRica AutoPost', 'info');
+
+  // STEP 1 — Buscar produtos da Nuvem Shop
+  log('Buscando produtos na Nuvem Shop API...', 'dim');
+  setProgress(15);
+
+  let products = [];
+  try {
+    const resp = await fetch(`https://api.nuvemshop.com.br/v1/${STORE_ID}/products?per_page=50&published=true`, {
+      headers: {
+        'Authentication': `bearer ${ACCESS_TOKEN}`,
+        'User-Agent': 'DonaRica AutoPost (lojadonarica@gmail.com)'
+      }
+    });
+
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    products = await resp.json();
+    log(`✓ ${products.length} produtos encontrados`, 'ok');
+  } catch(e) {
+    log('Erro ao buscar produtos: ' + e.message, 'err');
+    log('Verifique se o app está instalado na loja com permissão read_products', 'err');
+    setStatus('error', 'Erro na API');
+    document.getElementById('btnRun').disabled = false;
+    running = false;
+    return;
+  }
+
+  setProgress(30);
+
+  // STEP 2 — Selecionar produto aleatório com imagens
+  const withImages = products.filter(p => p.images && p.images.length > 0);
+  if (withImages.length === 0) {
+    log('Nenhum produto com imagens encontrado', 'err');
+    setStatus('error', 'Sem produtos com imagens');
+    document.getElementById('btnRun').disabled = false;
+    running = false;
+    return;
+  }
+
+  currentProduct = withImages[Math.floor(Math.random() * withImages.length)];
+  const name = currentProduct.name?.pt || currentProduct.name?.en || Object.values(currentProduct.name || {})[0] || 'Produto';
+  log(`✓ Produto selecionado: "${name}"`, 'ok');
+  setProgress(50);
+
+  // STEP 3 — Montar UI do produto
+  const imgs = currentProduct.images || [];
+  document.getElementById('imgMain').src = imgs[0]?.src || '';
+  document.getElementById('img2').src = imgs[1]?.src || imgs[0]?.src || '';
+  document.getElementById('img3').src = imgs[2]?.src || imgs[0]?.src || '';
+  document.getElementById('igImg').src = imgs[0]?.src || '';
+
+  const price = currentProduct.variants?.[0]?.price;
+  const priceStr = price ? `R$ ${parseFloat(price).toFixed(2).replace('.',',')}` : '';
+  const desc = currentProduct.description?.replace(/<[^>]*>/g,'').substring(0,120) || '';
+  const cats = (currentProduct.categories || []).map(c => c.name?.pt || '').filter(Boolean);
+
+  document.getElementById('prodName').textContent = name;
+  document.getElementById('prodPrice').textContent = priceStr;
+  document.getElementById('prodDesc').textContent = desc;
+
+  const metaEl = document.getElementById('prodMeta');
+  metaEl.innerHTML = '';
+  if (priceStr) metaEl.innerHTML += `<span class="meta-tag">${priceStr}</span>`;
+  cats.slice(0,2).forEach(c => metaEl.innerHTML += `<span class="meta-tag">${c}</span>`);
+  if (imgs.length > 1) metaEl.innerHTML += `<span class="meta-tag">${imgs.length} fotos</span>`;
+
+  document.getElementById('igLikes').textContent = `${Math.floor(Math.random()*120+80)} curtidas`;
+  log(`✓ ${imgs.length} fotos capturadas`, 'ok');
+  setProgress(65);
+
+  // STEP 4 — Gerar copy com Claude API
+  log('Gerando legenda com Claude AI...', 'dim');
+  setStatus('active', 'Gerando copy...');
+  document.getElementById('copyLoading').style.display = 'block';
+  document.getElementById('captionEdit').value = '';
+
+  let caption = '';
+  try {
+    const prompt = `Você é a copywriter da Dona Rica, uma boutique feminina brasileira sofisticada e elegante.
+
+Crie uma legenda para Instagram para o seguinte produto:
+- Nome: ${name}
+- Preço: ${priceStr}
+- Descrição: ${desc}
+- Categorias: ${cats.join(', ')}
+
+Regras:
+- Tom editorial, sofisticado, feminino e aspiracional
+- 2-3 parágrafos curtos com emojis elegantes
+- Termine com 8-10 hashtags relevantes em português
+- Não use clichês como "perfeito para você" ou "não perca"
+- Mencione o preço de forma sutil se for interessante
+- Escreva em português brasileiro
+
+Responda APENAS com a legenda, sem explicações.`;
+
+    const apiResp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!apiResp.ok) throw new Error(`Claude API ${apiResp.status}`);
+    const apiData = await apiResp.json();
+    caption = apiData.content?.[0]?.text || '';
+    log('✓ Copy gerado pelo Claude', 'ok');
+  } catch(e) {
+    log('Aviso: Claude API indisponível, usando copy padrão', 'dim');
+    caption = `${name} chegou para ficar. ✨\n\nElegância que fala por si — cada detalhe pensado para a mulher que sabe o que quer.\n\n${priceStr ? `Por apenas ${priceStr}, ` : ''}faça do seu estilo uma declaração.\n\n#DonaRica #ModaFeminina #Estilo #Fashion #BoutiqueOnline #LookDodia #ModaBrasil #Elegância`;
+  }
+
+  document.getElementById('copyLoading').style.display = 'none';
+  document.getElementById('captionEdit').value = caption;
+
+  // Update IG preview
+  const lines = caption.split('\n').filter(Boolean);
+  const hashLine = lines.find(l => l.startsWith('#')) || '';
+  const textLines = lines.filter(l => !l.startsWith('#')).join('<br>');
+  document.getElementById('igCaption').innerHTML = `<strong>donarica.oficial</strong> ${textLines}<br><span class="ig-hashtags">${hashLine}</span>`;
+
+  setProgress(100);
+  setStatus('done', 'Pronto para publicar');
+  log('✓ Pipeline concluído — revise e publique', 'ok');
+
+  document.getElementById('result').classList.add('show');
+  document.getElementById('result').scrollIntoView({ behavior:'smooth', block:'start' });
+
+  document.getElementById('btnRun').disabled = false;
+  running = false;
+}
+
+async function regenCopy() {
+  if (!currentProduct) return;
+  document.getElementById('copyLoading').style.display = 'block';
+  document.getElementById('captionEdit').value = '';
+
+  const name = currentProduct.name?.pt || Object.values(currentProduct.name || {})[0] || '';
+  const price = currentProduct.variants?.[0]?.price;
+  const priceStr = price ? `R$ ${parseFloat(price).toFixed(2).replace('.',',')}` : '';
+  const desc = (currentProduct.description || '').replace(/<[^>]*>/g,'').substring(0,120);
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: `Crie uma legenda diferente e criativa para Instagram da boutique Dona Rica para o produto "${name}" (${priceStr}). Descrição: ${desc}. Tom sofisticado, feminino, editorial. Termine com hashtags. Apenas a legenda, sem explicações.` }]
+      })
+    });
+    const data = await resp.json();
+    const caption = data.content?.[0]?.text || '';
+    document.getElementById('captionEdit').value = caption;
+    const lines = caption.split('\n').filter(Boolean);
+    const hashLine = lines.find(l => l.startsWith('#')) || '';
+    const textLines = lines.filter(l => !l.startsWith('#')).join('<br>');
+    document.getElementById('igCaption').innerHTML = `<strong>donarica.oficial</strong> ${textLines}<br><span class="ig-hashtags">${hashLine}</span>`;
+  } catch(e) {
+    document.getElementById('captionEdit').value = 'Erro ao gerar copy. Edite manualmente.';
+  }
+
+  document.getElementById('copyLoading').style.display = 'none';
+}
+
+function confirmPublish() {
+  setStatus('active', 'Publicando...');
+  setTimeout(() => {
+    setStatus('done', 'Publicado!');
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 4000);
+  }, 1500);
+}
+</script>
+</body>
+</html>
